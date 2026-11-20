@@ -1,0 +1,46 @@
+{% extends "admin_base.html" %}
+{% from "_macros.html" import status_badge, priority_badge %}
+{% block title %}All tickets{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>All tickets</h1><p class="sub">Click a ticket to open it and reply.</p></div></div>
+<div class="card">
+  <form class="toolbar" method="get">
+    <a class="chip {{ 'active' if not status }}" href="{{ url_for('admin_tickets', priority=priority, category=category, q=q) }}">All ({{ total }})</a>
+    {% for s in statuses %}
+      <a class="chip {{ 'active' if status == s }}" href="{{ url_for('admin_tickets', status=s, priority=priority, category=category, q=q) }}">{{ s }} ({{ counts[s] }})</a>
+    {% endfor %}
+    <input type="hidden" name="status" value="{{ status }}">
+    <select name="category" aria-label="Category" data-autosubmit>
+      <option value="">All categories</option>
+      {% for c in categories %}<option{% if c|lower == category|lower %} selected{% endif %}>{{ c }}</option>{% endfor %}
+    </select>
+    <select name="priority" aria-label="Priority" data-autosubmit>
+      <option value="">All priorities</option>
+      {% for p in priorities|reverse %}<option{% if p == priority %} selected{% endif %}>{{ p }}</option>{% endfor %}
+    </select>
+    <input class="grow" type="search" name="q" value="{{ q }}" placeholder="Search ticket no., name, subject…" aria-label="Search">
+    <button class="btn sm">Search</button>
+  </form>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Ticket</th><th>Subject</th><th class="hide-sm">Employee</th><th class="hide-sm">Category</th><th>Priority</th><th>Status</th><th class="hide-sm">Received</th></tr></thead>
+      <tbody>
+      {% for t in tickets %}
+        <tr class="{{ 'new' if not t.viewed }}">
+          <td class="mono nowrap"><a href="{{ url_for('admin_ticket', ticket_id=t.id) }}">{{ t.ticket_no }}</a>{% if not t.viewed %}<span class="new-dot" title="New"></span>{% endif %}</td>
+          <td><a class="row-link" href="{{ url_for('admin_ticket', ticket_id=t.id) }}">{{ t.subject }}</a>{% if t.attachment_file %} 📎{% endif %}</td>
+          <td class="hide-sm">{{ t.name }}<br><span class="hint">{{ t.department }}</span></td>
+          <td class="hide-sm"><span class="tag">{{ t.category }}</span></td>
+          <td>{{ priority_badge(t.priority) }}</td>
+          <td>{{ status_badge(t.status) }}</td>
+          <td class="hide-sm hint nowrap">{{ t.created_at|dt }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="7" class="empty">No tickets match these filters.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% if tickets|length >= 300 %}<p class="hint mt">Showing the newest 300 tickets. Use search or filters to find older ones.</p>{% endif %}
+{% endblock %}

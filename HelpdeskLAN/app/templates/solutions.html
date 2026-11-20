@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "_macros.html" import solution_item %}
+{% block title %}Solutions{% endblock %}
+{% block content %}
+<h1>Solutions</h1>
+<p class="sub">Answers published by IT. Click a problem to see the solution.</p>
+<form class="inline-form mb" method="get">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search solutions…" aria-label="Search">
+  <select name="category" aria-label="Category" data-autosubmit>
+    <option value="">All categories</option>
+    {% for c in categories %}<option{% if c.name|lower == category|lower %} selected{% endif %}>{{ c.name }}</option>{% endfor %}
+  </select>
+  <button class="btn">Search</button>
+  {% if q or category %}<a class="btn secondary" href="{{ url_for('solutions') }}">Clear</a>{% endif %}
+</form>
+<div class="card">
+  {% for t in items %}{{ solution_item(t, open=(q != '')) }}
+  {% else %}<div class="empty">No solutions found. <a href="{{ url_for('report') }}">Report it to IT →</a></div>{% endfor %}
+</div>
+<p class="meta mt">Didn't find your answer? <a href="{{ url_for('report') }}">Report a new problem →</a></p>
+{% endblock %}

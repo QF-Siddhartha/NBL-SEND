@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "_macros.html" import solution_item %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<div class="card hero">
+  <h1>Hi! How can IT help you today?</h1>
+  <p class="sub mb0">Search our solutions first. Many common problems are already answered.</p>
+  <form class="hero-search" action="{{ url_for('solutions') }}" method="get">
+    <input type="search" name="q" placeholder="e.g. printer offline, Outlook password, Wi-Fi" aria-label="Search solutions">
+    <button class="btn">Search</button>
+  </form>
+</div>
+
+<div class="tiles">
+  <a class="card tile" href="{{ url_for('report') }}"><div class="ic">📝</div><b>Report a problem</b><span>Tell IT what's wrong and get a ticket number</span></a>
+  <a class="card tile" href="{{ url_for('track') }}"><div class="ic">🔎</div><b>Track my ticket</b><span>See the status and read IT's answer</span></a>
+  <a class="card tile" href="{{ url_for('solutions') }}"><div class="ic">💡</div><b>Browse solutions</b><span>Fix common problems yourself</span></a>
+</div>
+
+{% if categories %}
+<h2>Browse by category</h2>
+<div class="pills">
+  {% for c in categories %}<a class="pill" href="{{ url_for('solutions', category=c.name) }}">{{ c.name }} <span class="n">{{ c.n }}</span></a>{% endfor %}
+</div>
+{% endif %}
+
+<h2>Recently solved</h2>
+<div class="card">
+  {% for t in recent %}{{ solution_item(t) }}{% else %}<div class="empty">No solutions published yet.</div>{% endfor %}
+</div>
+{% endblock %}

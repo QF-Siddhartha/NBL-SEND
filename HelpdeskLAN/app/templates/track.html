@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge %}
+{% block title %}Track ticket{% endblock %}
+{% block content %}
+<h1>Track your ticket</h1>
+<p class="sub">Enter the ticket number you received when you reported the problem.</p>
+<form class="inline-form mb" method="get" style="max-width:460px">
+  <input name="no" class="mono" value="{{ raw }}" placeholder="HD-0000" aria-label="Ticket number" required>
+  <button class="btn">Check status</button>
+</form>
+
+{% if raw and not t %}
+<div class="card pad empty">No ticket found with number <b class="mono">{{ raw }}</b>. Please check the number and try again.</div>
+{% elif t %}
+<div class="split">
+  <div class="card pad">
+    <div class="item-top">
+      <div>
+        <div class="ticket-no">{{ t.ticket_no }}</div>
+        <h2 class="mb0">{{ t.subject }}</h2>
+        <div class="meta">{{ t.department }} · {{ t.category }} · Priority: {{ t.priority }}</div>
+      </div>
+      {{ status_badge(t.status) }}
+    </div>
+    <p class="section-title mt">Your problem</p>
+    <div class="problem-box">{{ t.description }}</div>
+    {% if t.answer %}
+      <div class="answer mt"><b>Answer from IT:</b> {{ t.answer }}</div>
+    {% else %}
+      <div class="answer waiting mt"><b>Waiting for IT.</b> The answer will appear here once it's ready. Please check back later.</div>
+    {% endif %}
+  </div>
+  <div class="card pad">
+    <h2>Progress</h2>
+    <ul class="timeline">
+      <li class="done"><b>Submitted</b><span class="when">{{ t.created_at|dt }}</span></li>
+      {% if t.status == 'Resolved' %}
+        <li class="done"><b>In progress</b><span class="when">{{ t.in_progress_at|dt if t.in_progress_at else '—' }}</span></li>
+        <li class="done"><b>Resolved</b><span class="when">{{ t.resolved_at|dt }}</span></li>
+      {% elif t.status == 'In progress' %}
+        <li class="current"><b>In progress</b><span class="when">{{ t.in_progress_at|dt }} · IT is working on it</span></li>
+        <li><b>Resolved</b><span class="when">Waiting</span></li>
+      {% else %}
+        <li><b>In progress</b><span class="when">Waiting</span></li>
+        <li><b>Resolved</b><span class="when">Waiting</span></li>
+      {% endif %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

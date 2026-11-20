@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Helpdesk Admin</title>
+<style>
+  :root {
+    --bg: #f1f5f9; --surface: #ffffff; --surface-2: #f8fafc; --border: #e2e8f0;
+    --text: #1e293b; --muted: #64748b;
+    --primary: #2563eb; --primary-hover: #1d4ed8; --primary-soft: #eff6ff;
+    --open: #dc2626; --open-bg: #fef2f2;
+    --progress: #b45309; --progress-bg: #fffbeb;
+    --resolved: #15803d; --resolved-bg: #f0fdf4;
+    --urgent: #9333ea; --urgent-bg: #faf5ff;
+    --side: #0f172a; --side-text: #cbd5e1; --side-active: #1e293b;
+    --shadow: 0 1px 3px rgba(15,23,42,.08), 0 1px 2px rgba(15,23,42,.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0b1120; --surface: #141c2f; --surface-2: #1a2338; --border: #26314a;
+      --text: #e2e8f0; --muted: #94a3b8;
+      --primary: #3b82f6; --primary-hover: #60a5fa; --primary-soft: #172554;
+      --open: #f87171; --open-bg: #3a1414;
+      --progress: #fbbf24; --progress-bg: #3a2a0a;
+      --resolved: #4ade80; --resolved-bg: #0f2e1a;
+      --urgent: #c084fc; --urgent-bg: #2e1a47;
+      --side: #020617; --side-active: #141c2f; --shadow: none;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
+  a { color: var(--primary); cursor: pointer; text-decoration: none; }
+
+  /* Login */
+  #login-view { min-height: 100vh; display: grid; place-items: center; padding: 16px;
+    background: linear-gradient(135deg, #0f172a, #1e3a8a); }
+  .login-card { width: 100%; max-width: 400px; background: var(--surface); border-radius: 14px; padding: 32px 28px;
+    box-shadow: 0 20px 50px rgba(0,0,0,.3); }
+  .login-card .logo { width: 52px; height: 52px; margin: 0 auto 12px; border-radius: 12px; background: var(--primary-soft);
+    display: grid; place-items: center; font-size: 24px; }
+  .warn { font-size: 12px; background: var(--progress-bg); color: var(--progress); padding: 8px 10px; border-radius: 8px; margin-top: 14px; }
+
+  /* Shell */
+  #app-view { display: none; min-height: 100vh; }
+  #app-view.on { display: grid; grid-template-columns: 230px 1fr; }
+  aside { background: var(--side); color: var(--side-text); padding: 18px 12px; display: flex; flex-direction: column; gap: 4px; }
+  .side-brand { display: flex; align-items: center; gap: 10px; color: #fff; font-weight: 700; font-size: 16px; padding: 4px 10px 18px; }
+  .side-brand .logo { width: 32px; height: 32px; border-radius: 8px; background: var(--primary); display: grid; place-items: center; }
+  .side-brand small { display: block; font-weight: 400; font-size: 11px; color: var(--side-text); }
+  aside a { color: var(--side-text); padding: 9px 12px; border-radius: 8px; display: flex; align-items: center; gap: 10px; font-size: 14px; }
+  aside a:hover { background: var(--side-active); color: #fff; }
+  aside a.active { background: var(--primary); color: #fff; }
+  aside .count { margin-left: auto; background: var(--open); color: #fff; font-size: 11px; font-weight: 700; padding: 0 7px; border-radius: 999px; }
+  aside .spacer { flex: 1; }
+  .side-user { border-top: 1px solid #1e293b; padding: 12px 10px 0; font-size: 13px; display: flex; align-items: center; gap: 10px; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: #334155; color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+
+  .content { padding: 24px 28px 48px; min-width: 0; }
+  .topbar { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+  h1 { font-size: 22px; margin: 0; }
+  h2 { font-size: 16px; margin: 0 0 12px; }
+  .sub { color: var(--muted); margin: 2px 0 0; }
+  .screen { display: none; } .screen.active { display: block; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); }
+  .pad { padding: 18px; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: var(--primary); color: #fff; border: 0;
+    border-radius: 8px; padding: 9px 16px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .btn:hover { background: var(--primary-hover); }
+  .btn.secondary { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+  .btn.danger { background: transparent; color: var(--open); border: 1px solid var(--border); }
+  .btn.sm { padding: 5px 10px; font-size: 12px; }
+  label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 5px; }
+  input, select, textarea { width: 100%; padding: 9px 11px; font: inherit; color: var(--text); background: var(--surface);
+    border: 1px solid var(--border); border-radius: 8px; }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--primary); outline-offset: -1px; }
+  textarea { min-height: 130px; resize: vertical; }
+  .field { margin-bottom: 14px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .check { display: flex; gap: 8px; align-items: center; font-weight: 500; }
+  .check input { width: auto; }
+  .hint { font-size: 12px; color: var(--muted); }
+
+  .badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+  .b-open { color: var(--open); background: var(--open-bg); }
+  .b-progress { color: var(--progress); background: var(--progress-bg); }
+  .b-resolved { color: var(--resolved); background: var(--resolved-bg); }
+  .p-Urgent { color: var(--urgent); background: var(--urgent-bg); }
+  .p-High { color: var(--open); background: var(--open-bg); }
+  .p-Medium { color: var(--progress); background: var(--progress-bg); }
+  .p-Low { color: var(--muted); background: var(--surface-2); }
+  .tag { display: inline-block; font-size: 12px; color: var(--muted); background: var(--surface-2); border: 1px solid var(--border);
+    padding: 1px 8px; border-radius: 6px; }
+  .mono { font-family: ui-monospace, Menlo, Consolas, monospace; }
+  .muted { color: var(--muted); }
+
+  /* Dashboard */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+  .stat { padding: 14px 16px; cursor: pointer; }
+  .stat:hover { border-color: var(--primary); }
+  .stat .n { font-size: 26px; font-weight: 700; line-height: 1.2; }
+  .stat .l { font-size: 13px; color: var(--muted); }
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  .chip { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 999px; padding: 4px 12px; font-size: 13px; cursor: pointer; }
+  .chip.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .toolbar input, .toolbar select { width: auto; padding: 6px 10px; font-size: 13px; }
+  .toolbar .grow { flex: 1; min-width: 160px; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding: 10px 14px;
+    background: var(--surface-2); border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tbody tr.click { cursor: pointer; }
+  tbody tr.click:hover { background: var(--surface-2); }
+  tbody tr:last-child td { border-bottom: 0; }
+  tr.new td:first-child { box-shadow: inset 3px 0 0 var(--open); }
+  .new-dot { display: inline-block; width: 7px; height: 7px; background: var(--open); border-radius: 50%; margin-left: 6px; vertical-align: middle; }
+  .empty { padding: 30px; text-align: center; color: var(--muted); }
+
+  /* Detail */
+  .detail-grid { display: grid; grid-template-columns: 1fr 300px; gap: 18px; align-items: start; }
+  .problem-box { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; white-space: pre-wrap; }
+  .attachment { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; }
+  .attachment .hint { margin-left: auto; }
+  .kv div { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--border); gap: 10px; }
+  .kv div:last-child { border-bottom: 0; }
+  .kv span:first-child { color: var(--muted); }
+  .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 10px; font-weight: 700; }
+  .templates { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .log { list-style: none; margin: 0; padding: 0; font-size: 13px; }
+  .log li { padding: 7px 0 7px 16px; border-left: 2px solid var(--border); position: relative; }
+  .log li::before { content: ""; position: absolute; left: -5px; top: 13px; width: 8px; height: 8px; border-radius: 50%; background: var(--primary); }
+  .log .when { color: var(--muted); font-size: 12px; display: block; }
+  .note { background: var(--progress-bg); border: 1px dashed var(--progress); border-radius: 8px; padding: 8px 10px; font-size: 13px; margin-bottom: 8px; }
+
+  /* Reports */
+  .bars .bar-row { display: grid; grid-template-columns: 90px 1fr 34px; gap: 10px; align-items: center; margin-bottom: 9px; font-size: 13px; }
+  .bar-track { height: 12px; background: var(--surface-2); border-radius: 6px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--primary); border-radius: 6px; }
+  .cols { display: flex; align-items: flex-end; gap: 10px; height: 160px; padding-top: 10px; }
+  .col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); height: 100%; justify-content: flex-end; }
+  .col .c { width: 100%; max-width: 42px; background: var(--primary); border-radius: 6px 6px 0 0; }
+  .col b { color: var(--text); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+
+  /* Settings */
+  .list-edit div { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .list-edit div:last-child { border-bottom: 0; }
+  .add-row { display: flex; gap: 8px; margin-top: 10px; }
+
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(90px); background: #0f172a; color: #f8fafc;
+    padding: 10px 18px; border-radius: 8px; font-size: 14px; transition: transform .25s; z-index: 10; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 860px) {
+    #app-view.on { grid-template-columns: 1fr; }
+    aside { flex-direction: row; flex-wrap: wrap; padding: 10px; gap: 4px; }
+    .side-brand { padding: 4px 8px; width: 100%; }
+    aside .spacer, .side-user { display: none; }
+    aside a { padding: 7px 10px; font-size: 13px; }
+    .content { padding: 18px 16px 40px; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .detail-grid, .grid-2, .row { grid-template-columns: 1fr; }
+    .hide-sm { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-view">
+  <form class="login-card" id="login-form">
+    <div class="logo">🔒</div>
+    <h1 style="text-align:center">Helpdesk Admin</h1>
+    <p class="sub" style="text-align:center;margin-bottom:22px">Sign in to manage support tickets</p>
+    <div class="field"><label>Username</label><input value="admin" autocomplete="username"></div>
+    <div class="field"><label>Password</label><input type="password" value="examplepassword" autocomplete="current-password"></div>
+    <label class="check" style="margin-bottom:16px"><input type="checkbox"> Keep me signed in on this computer</label>
+    <button class="btn" style="width:100%">Sign in</button>
+    <div class="warn">⚠️ Template preview: any password works. The real app locks the account after 5 wrong attempts.</div>
+    <p class="hint" style="text-align:center;margin-top:14px"><a href="user.html">← Back to employee portal</a></p>
+  </form>
+</div>
+
+<!-- APP -->
+<div id="app-view">
+  <aside>
+    <div class="side-brand"><div class="logo">🛠️</div><div>Helpdesk<small>Admin panel</small></div></div>
+    <a data-go="dashboard">📊 Dashboard</a>
+    <a data-go="tickets">🎫 All tickets <span class="count" id="nav-open">0</span></a>
+    <a data-go="reports">📈 Reports</a>
+    <a data-go="settings">⚙️ Settings</a>
+    <a href="user.html" target="_blank">🌐 View employee portal</a>
+    <div class="spacer"></div>
+    <div class="side-user"><div class="avatar">AD</div><div><b style="color:#fff">Admin</b><br><a id="logout" style="color:var(--side-text);font-size:12px;padding:0">Sign out</a></div></div>
+  </aside>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <section class="screen" id="dashboard">
+      <div class="topbar"><div><h1>Good morning, Admin 👋</h1><p class="sub">Here's what needs your attention today.</p></div>
+        <span class="muted">Thursday, 19 Nov 2026</span></div>
+      <div class="stats">
+        <div class="card stat" data-filter="Open"><div class="n" style="color:var(--open)" id="s-open"></div><div class="l">Open: need reply</div></div>
+        <div class="card stat" data-filter="In progress"><div class="n" style="color:var(--progress)" id="s-prog"></div><div class="l">In progress</div></div>
+        <div class="card stat" data-filter="Resolved"><div class="n" style="color:var(--resolved)" id="s-res"></div><div class="l">Resolved this month</div></div>
+        <div class="card stat"><div class="n">3.4h</div><div class="l">Avg. time to resolve</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="toolbar"><h2 style="margin:0">🔴 New &amp; urgent</h2><a data-go="tickets" style="margin-left:auto;font-size:13px">View all →</a></div>
+          <div class="table-wrap"><table><tbody id="dash-urgent"></tbody></table></div>
+        </div>
+        <div class="card pad">
+          <h2>Recent activity</h2>
+          <ul class="log">
+            <li><b>Ravi Kumar</b> reported "Wi-Fi keeps disconnecting"<span class="when">Today, 09:15</span></li>
+            <li><b>Anita Rao</b> reported "Need access to Finance folder"<span class="when">Today, 08:50</span></li>
+            <li>You moved <b>HD-0040</b> to In progress<span class="when">Yesterday, 14:05</span></li>
+            <li>You resolved and published <b>HD-0041</b><span class="when">17 Nov, 17:10</span></li>
+            <li>Daily backup completed ✅<span class="when">17 Nov, 23:00</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ALL TICKETS -->
+    <section class="screen" id="tickets">
+      <div class="topbar"><div><h1>All tickets</h1><p class="sub">Click a ticket to open it and reply.</p></div>
+        <button class="btn secondary" id="export">⬇ Export to Excel (CSV)</button></div>
+      <div class="card">
+        <div class="toolbar">
+          <span id="chips"></span>
+          <select id="f-cat"><option value="">All categories</option><option>Printer</option><option>Email</option><option>Network</option><option>Software</option><option>Hardware</option><option>Access</option></select>
+          <select id="f-pri"><option value="">All priorities</option><option>Urgent</option><option>High</option><option>Medium</option><option>Low</option></select>
+          <input id="f-q" class="grow" type="search" placeholder="Search ticket no., name, subject…">
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Ticket</th><th>Subject</th><th class="hide-sm">Employee</th><th class="hide-sm">Category</th><th>Priority</th><th>Status</th><th class="hide-sm">Received</th></tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TICKET DETAIL -->
+    <section class="screen" id="detail">
+      <p style="margin:0 0 8px"><a data-go="tickets">← Back to all tickets</a></p>
+      <div class="topbar">
+        <div><span class="mono muted" id="d-no"></span><h1 id="d-title"></h1></div>
+        <div class="actions" id="d-badges"></div>
+      </div>
+      <div class="detail-grid">
+        <div>
+          <div class="card pad" style="margin-bottom:16px">
+            <p class="section-title">Problem from employee</p>
+            <div class="problem-box" id="d-desc"></div>
+            <div class="attachment" id="d-att">📎 <a>screenshot_error.png</a><span class="hint">212 KB · click to download</span></div>
+          </div>
+
+          <form class="card pad" id="answer-form" style="margin-bottom:16px">
+            <p class="section-title">Answer / solution (employee will see this)</p>
+            <div class="templates">
+              <span class="hint" style="align-self:center">Quick replies:</span>
+              <button type="button" class="btn sm secondary" data-tpl="Thanks for reporting. I'm looking into this now and will update you shortly.">Looking into it</button>
+              <button type="button" class="btn sm secondary" data-tpl="Please restart your computer and try again. If the problem continues, reply with a new ticket referencing this number.">Restart PC</button>
+              <button type="button" class="btn sm secondary" data-tpl="Please bring your laptop to the IT desk (ground floor) so I can check it in person.">Bring to IT desk</button>
+            </div>
+            <div class="field"><textarea id="d-answer" placeholder="Write the solution in simple steps so the employee (and others) can follow it…"></textarea></div>
+            <div class="row">
+              <div class="field"><label>Change status</label>
+                <select id="d-status"><option>Open</option><option>In progress</option><option>Resolved</option></select></div>
+              <div class="field"><label>Priority</label>
+                <select id="d-pri"><option>Low</option><option>Medium</option><option>High</option><option>Urgent</option></select></div>
+            </div>
+            <label class="check" style="margin-bottom:14px"><input type="checkbox" id="d-publish" checked> Publish this answer on the shared Solutions board (visible to all employees)</label>
+            <div class="actions">
+              <button class="btn" type="submit">💾 Save &amp; update ticket</button>
+              <button class="btn secondary" type="button" data-go="tickets">Cancel</button>
+              <button class="btn danger" type="button" id="d-delete" style="margin-left:auto">🗑 Delete</button>
+            </div>
+          </form>
+
+          <div class="card pad">
+            <p class="section-title">Internal notes (only admins see these)</p>
+            <div id="d-notes"></div>
+            <div class="add-row"><input id="note-in" placeholder="Add a private note, e.g. 'Ordered new toner, arriving Friday'"><button class="btn sm" id="note-add">Add</button></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card pad kv" id="d-info" style="margin-bottom:16px"></div>
+          <div class="card pad"><p class="section-title">History</p><ul class="log" id="d-log"></ul></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- REPORTS -->
+    <section class="screen" id="reports">
+      <div class="topbar"><div><h1>Reports</h1><p class="sub">November 2026 overview</p></div>
+        <select style="width:auto"><option>This month</option><option>Last month</option><option>Last 3 months</option><option>This year</option></select></div>
+      <div class="stats">
+        <div class="card stat"><div class="n">47</div><div class="l">Tickets received</div></div>
+        <div class="card stat"><div class="n" style="color:var(--resolved)">42</div><div class="l">Resolved</div></div>
+        <div class="card stat"><div class="n">3.4h</div><div class="l">Avg. resolve time</div></div>
+        <div class="card stat"><div class="n">92%</div><div class="l">"Solved my problem" 👍</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card pad"><h2>Tickets by category</h2><div class="bars" id="by-cat"></div></div>
+        <div class="card pad"><h2>Tickets per week</h2><div class="cols" id="by-week"></div></div>
+        <div class="card pad"><h2>Tickets by department</h2><div class="bars" id="by-dept"></div></div>
+        <div class="card pad"><h2>Most repeated problems</h2>
+          <table><tbody>
+            <tr><td>Printer offline</td><td style="text-align:right"><b>9</b></td></tr>
+            <tr><td>Outlook password prompt</td><td style="text-align:right"><b>6</b></td></tr>
+            <tr><td>Wi-Fi disconnects</td><td style="text-align:right"><b>5</b></td></tr>
+            <tr><td>Folder access request</td><td style="text-align:right"><b>4</b></td></tr>
+          </tbody></table>
+          <p class="hint" style="margin-top:10px">💡 Tip: publish answers for repeated problems so employees can fix them themselves.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="screen" id="settings">
+      <div class="topbar"><div><h1>Settings</h1><p class="sub">Customise the helpdesk for your office.</p></div></div>
+      <div class="grid-2">
+        <div class="card pad"><h2>Problem categories</h2><div class="list-edit" id="set-cats"></div>
+          <div class="add-row"><input placeholder="New category"><button class="btn sm" data-add="set-cats">Add</button></div></div>
+        <div class="card pad"><h2>Departments</h2><div class="list-edit" id="set-depts"></div>
+          <div class="add-row"><input placeholder="New department"><button class="btn sm" data-add="set-depts">Add</button></div></div>
+        <div class="card pad"><h2>Admin users</h2>
+          <div class="list-edit">
+            <div><span><b>admin</b> <span class="hint">· you · last login today 09:02</span></span><span class="badge b-resolved">Active</span></div>
+            <div><span><b>it.support</b> <span class="hint">· last login 12 Nov</span></span><button class="btn sm secondary">Reset password</button></div>
+          </div>
+          <div class="add-row"><button class="btn sm secondary">+ Add admin</button><button class="btn sm secondary">🔑 Change my password</button></div></div>
+        <div class="card pad"><h2>Backup &amp; system</h2>
+          <div class="kv">
+            <div><span>Last backup</span><span>17 Nov 2026, 23:00 ✅</span></div>
+            <div><span>Database size</span><span>2.4 MB</span></div>
+            <div><span>Uploads folder</span><span>38 files · 14 MB</span></div>
+            <div><span>Server address</span><span class="mono">http://192.168.1.100:5000</span></div>
+            <div><span>Max upload size</span><span>5 MB</span></div>
+          </div>
+          <div class="add-row"><button class="btn sm" id="backup-now">Back up now</button><button class="btn sm secondary">Download backup</button></div></div>
+      </div>
+    </section>
+
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+  const tickets = [
+    { no: "HD-0043", title: "Wi-Fi keeps disconnecting", name: "Ravi Kumar", dept: "Sales", ext: "214", loc: "1st floor, desk 8", cat: "Network", pri: "High", status: "Open", date: "Today 09:15", isNew: true, att: true,
+      desc: "Since this morning my laptop disconnects from the office Wi-Fi every 10–15 minutes. Other people near me seem fine. I have restarted the laptop once.",
+      log: [["Ticket submitted by Ravi Kumar", "Today 09:15"]], notes: [] },
+    { no: "HD-0042", title: "Need access to shared Finance folder", name: "Anita Rao", dept: "Accounts", ext: "231", loc: "2nd floor", cat: "Access", pri: "Urgent", status: "Open", date: "Today 08:50", isNew: true,
+      desc: "I joined the Accounts team last week and cannot open \\\\server\\Finance. It says 'Access denied'. I need it for month-end closing.",
+      log: [["Ticket submitted by Anita Rao", "Today 08:50"]], notes: [] },
+    { no: "HD-0040", title: "Cannot print from HR PC", name: "Meena S.", dept: "HR", ext: "205", loc: "2nd floor, HR cabin", cat: "Printer", pri: "Medium", status: "In progress", date: "18 Nov 10:42", att: true,
+      desc: "Documents go to the print queue but nothing comes out of the 2nd floor printer.", answer: "Thanks for reporting. I'm looking into this now and will update you shortly.",
+      log: [["Ticket submitted by Meena S.", "18 Nov 10:42"], ["Status changed to In progress", "18 Nov 14:05"]], notes: ["Driver looks outdated. Will reinstall after 5pm."] },
+    { no: "HD-0039", title: "Teams camera not detected", name: "Vikram N.", dept: "Management", ext: "201", loc: "Cabin 3", cat: "Hardware", pri: "Low", status: "In progress", date: "18 Nov 09:30",
+      desc: "Webcam doesn't show up in Teams but works in the Camera app.", log: [["Ticket submitted by Vikram N.", "18 Nov 09:30"], ["Status changed to In progress", "18 Nov 11:00"]], notes: [] },
+    { no: "HD-0041", title: "Printer shows 'Offline' on 2nd floor", name: "Suresh P.", dept: "Operations", ext: "220", loc: "2nd floor", cat: "Printer", pri: "Low", status: "Resolved", date: "17 Nov 16:20", published: true,
+      desc: "The printer appears offline on all PCs on the 2nd floor.",
+      answer: "The printer had picked up a new IP address. It is now fixed to 192.168.1.50. If it shows offline again, open Settings → Printers, remove it, and add it back.",
+      log: [["Ticket submitted by Suresh P.", "17 Nov 16:20"], ["Status changed to In progress", "17 Nov 16:45"], ["Resolved & published to board", "17 Nov 17:10"]], notes: [] },
+    { no: "HD-0038", title: "Outlook keeps asking for password", name: "Karthik V.", dept: "Management", ext: "202", loc: "Cabin 2", cat: "Email", pri: "Medium", status: "Resolved", date: "15 Nov 11:05", published: true,
+      desc: "Outlook asks for my password every few minutes.", answer: "Open Control Panel → Credential Manager → Windows Credentials, delete entries starting with 'MicrosoftOffice', then restart Outlook and sign in once.",
+      log: [["Ticket submitted by Karthik V.", "15 Nov 11:05"], ["Resolved & published to board", "15 Nov 12:30"]], notes: [] },
+  ];
+  let filter = "", current = null;
+  const cats = ["Printer", "Email", "Network", "Software", "Hardware", "Access"];
+  const depts = ["Sales", "Accounts", "HR", "Operations", "Management"];
+
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const sBadge = s => `<span class="badge ${s === "Open" ? "b-open" : s === "In progress" ? "b-progress" : "b-resolved"}">${s}</span>`;
+  const pBadge = p => `<span class="badge p-${p}">${p}</span>`;
+  const $ = id => document.getElementById(id);
+
+  function show(id) {
+    document.querySelectorAll(".screen").forEach(s => s.classList.toggle("active", s.id === id));
+    document.querySelectorAll("aside a[data-go]").forEach(a => a.classList.toggle("active", a.dataset.go === id || (id === "detail" && a.dataset.go === "tickets")));
+    $("nav-open").textContent = tickets.filter(t => t.status === "Open").length;
+    ({ dashboard: renderDash, tickets: renderTickets, detail: renderDetail, reports: renderReports, settings: renderSettings })[id]?.();
+    window.scrollTo(0, 0);
+  }
+
+  function row(t, compact) {
+    return compact
+      ? `<tr class="click ${t.isNew ? "new" : ""}" data-no="${t.no}"><td><span class="mono muted">${t.no}</span>${t.isNew ? '<span class="new-dot"></span>' : ""}<br><b>${esc(t.title)}</b><br><span class="hint">${esc(t.name)} · ${t.date}</span></td><td style="text-align:right">${pBadge(t.pri)}</td></tr>`
+      : `<tr class="click ${t.isNew ? "new" : ""}" data-no="${t.no}">
+          <td class="mono">${t.no}${t.isNew ? '<span class="new-dot" title="New"></span>' : ""}</td>
+          <td><b>${esc(t.title)}</b></td>
+          <td class="hide-sm">${esc(t.name)}<br><span class="hint">${t.dept}</span></td>
+          <td class="hide-sm"><span class="tag">${t.cat}</span></td>
+          <td>${pBadge(t.pri)}</td><td>${sBadge(t.status)}</td>
+          <td class="hide-sm hint">${t.date}</td></tr>`;
+  }
+
+  function renderDash() {
+    const c = s => tickets.filter(t => t.status === s).length;
+    $("s-open").textContent = c("Open"); $("s-prog").textContent = c("In progress"); $("s-res").textContent = 42 - 2 + c("Resolved");
+    const rank = { Urgent: 0, High: 1, Medium: 2, Low: 3 };
+    const list = tickets.filter(t => t.status !== "Resolved").sort((a, b) => rank[a.pri] - rank[b.pri]).slice(0, 4);
+    $("dash-urgent").innerHTML = list.length ? list.map(t => row(t, true)).join("") : `<tr><td class="empty">🎉 All caught up!</td></tr>`;
+  }
+
+  function renderTickets() {
+    $("chips").innerHTML = ["", "Open", "In progress", "Resolved"].map(f => {
+      const n = f ? tickets.filter(t => t.status === f).length : tickets.length;
+      return `<button class="chip ${filter === f ? "active" : ""}" data-chip="${f}">${f || "All"} (${n})</button>`;
+    }).join(" ");
+    const q = $("f-q").value.toLowerCase(), cat = $("f-cat").value, pri = $("f-pri").value;
+    const list = tickets.filter(t => (!filter || t.status === filter) && (!cat || t.cat === cat) && (!pri || t.pri === pri) &&
+      (!q || (t.no + t.title + t.name + t.dept).toLowerCase().includes(q)));
+    $("rows").innerHTML = list.length ? list.map(t => row(t)).join("") : `<tr><td colspan="7" class="empty">No tickets match these filters.</td></tr>`;
+  }
+
+  function renderDetail() {
+    const t = current;
+    $("d-no").textContent = t.no; $("d-title").textContent = t.title;
+    $("d-badges").innerHTML = pBadge(t.pri) + " " + sBadge(t.status) + (t.published && t.status === "Resolved" ? ' <span class="badge b-resolved">🌐 Published</span>' : "");
+    $("d-desc").textContent = t.desc;
+    $("d-att").style.display = t.att ? "" : "none";
+    $("d-answer").value = t.answer || "";
+    $("d-status").value = t.status; $("d-pri").value = t.pri;
+    $("d-publish").checked = t.published !== false;
+    $("d-info").innerHTML = `<p class="section-title">Employee details</p>
+      <div><span>Name</span><b>${esc(t.name)}</b></div><div><span>Department</span><span>${t.dept}</span></div>
+      <div><span>Phone / ext.</span><span>${t.ext}</span></div><div><span>Location</span><span>${esc(t.loc)}</span></div>
+      <div><span>Category</span><span class="tag">${t.cat}</span></div><div><span>Received</span><span>${t.date}</span></div>`;
+    $("d-log").innerHTML = t.log.map(([w, d]) => `<li>${esc(w)}<span class="when">${d}</span></li>`).join("");
+    $("d-notes").innerHTML = t.notes.length ? t.notes.map(n => `<div class="note">🔒 ${esc(n)}</div>`).join("") : `<p class="hint">No internal notes yet.</p>`;
+    if (t.isNew) { t.isNew = false; t.log.push(["Viewed by Admin", "Just now"]); }
+  }
+
+  function bars(el, data) {
+    const max = Math.max(...data.map(d => d[1]));
+    $(el).innerHTML = data.map(([l, v]) => `<div class="bar-row"><span>${l}</span><div class="bar-track"><div class="bar-fill" style="width:${v / max * 100}%"></div></div><b>${v}</b></div>`).join("");
+  }
+  function renderReports() {
+    bars("by-cat", [["Printer", 14], ["Email", 9], ["Network", 8], ["Access", 7], ["Software", 6], ["Hardware", 3]]);
+    bars("by-dept", [["Sales", 15], ["Accounts", 12], ["Operations", 9], ["HR", 6], ["Management", 5]]);
+    const wk = [["Week 1", 10], ["Week 2", 14], ["Week 3", 11], ["Week 4", 12]];
+    $("by-week").innerHTML = wk.map(([l, v]) => `<div class="col"><b>${v}</b><div class="c" style="height:${v / 14 * 100}%"></div>${l}</div>`).join("");
+  }
+  function renderSettings() {
+    const list = (arr) => arr.map(x => `<div><span>${esc(x)}</span><span class="actions"><button class="btn sm secondary">Rename</button><button class="btn sm danger">Remove</button></span></div>`).join("");
+    $("set-cats").innerHTML = list(cats); $("set-depts").innerHTML = list(depts);
+  }
+
+  function toast(msg) { const el = $("toast"); el.textContent = msg; el.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("show"), 2400); }
+
+  // Events
+  $("login-form").addEventListener("submit", e => { e.preventDefault(); $("login-view").style.display = "none"; $("app-view").classList.add("on"); show("dashboard"); toast("Signed in as admin"); });
+  $("logout").addEventListener("click", () => { $("app-view").classList.remove("on"); $("login-view").style.display = ""; });
+  document.addEventListener("click", e => {
+    const go = e.target.closest("[data-go]"); if (go) { e.preventDefault(); show(go.dataset.go); return; }
+    const r = e.target.closest("tr[data-no]"); if (r) { current = tickets.find(t => t.no === r.dataset.no); show("detail"); return; }
+    const chip = e.target.closest("[data-chip]"); if (chip) { filter = chip.dataset.chip; renderTickets(); return; }
+    const st = e.target.closest("[data-filter]"); if (st) { filter = st.dataset.filter; show("tickets"); return; }
+    const tpl = e.target.closest("[data-tpl]"); if (tpl) { $("d-answer").value = tpl.dataset.tpl; return; }
+    const add = e.target.closest("[data-add]");
+    if (add) { const inp = add.previousElementSibling; if (inp.value.trim()) { (add.dataset.add === "set-cats" ? cats : depts).push(inp.value.trim()); inp.value = ""; renderSettings(); toast("Added"); } }
+  });
+  ["f-q", "f-cat", "f-pri"].forEach(id => $(id).addEventListener("input", renderTickets));
+  $("answer-form").addEventListener("submit", e => {
+    e.preventDefault();
+    const t = current, ns = $("d-status").value;
+    t.answer = $("d-answer").value; t.pri = $("d-pri").value; t.published = $("d-publish").checked;
+    if (ns !== t.status) t.log.push([`Status changed to ${ns}` + (ns === "Resolved" && t.published ? " & published to board" : ""), "Just now"]);
+    else t.log.push(["Answer updated", "Just now"]);
+    t.status = ns;
+    toast(ns === "Resolved" ? (t.published ? "Resolved ✅ Answer published to the Solutions board" : "Resolved ✅ (not published)") : "Ticket updated");
+    renderDetail();
+  });
+  $("note-add").addEventListener("click", () => { const v = $("note-in").value.trim(); if (v) { current.notes.push(v); $("note-in").value = ""; renderDetail(); } });
+  $("d-delete").addEventListener("click", () => {
+    if (confirm(`Delete ${current.no}? This cannot be undone.`)) { tickets.splice(tickets.indexOf(current), 1); toast("Ticket deleted"); show("tickets"); }
+  });
+  $("export").addEventListener("click", () => toast("In the real app this downloads tickets.csv"));
+  $("backup-now").addEventListener("click", () => toast("Backup created: helpdesk_2026-11-19.db"));
+</script>
+</body>
+</html>

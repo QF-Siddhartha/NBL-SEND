@@ -1,0 +1,17 @@
+{% macro status_badge(s) %}<span class="badge {{ s|status_class }}">{{ s }}</span>{% endmacro %}
+{% macro priority_badge(p) %}<span class="badge p-{{ p }}">{{ p }}</span>{% endmacro %}
+{% macro solution_item(t, open=False) %}
+<details class="item"{% if open %} open{% endif %}>
+  <summary>
+    <div class="item-top">
+      <div>
+        <span class="chev">▶</span><span class="item-title">{{ t.subject }}</span>
+        <div class="meta indent">{{ t.category }} · Solved {{ t.resolved_at|dt }}</div>
+      </div>
+      {{ status_badge("Resolved") }}
+    </div>
+  </summary>
+  <div class="answer"><b>Solution:</b> {{ t.answer }}</div>
+</details>
+{% endmacro %}
+{% macro field_error(errors, name) %}{% if errors.get(name) %}<div class="error">{{ errors[name] }}</div>{% endif %}{% endmacro %}

@@ -1,0 +1,35 @@
+{% extends "admin_base.html" %}
+{% from "_macros.html" import priority_badge %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Hello, {{ admin.username }} 👋</h1><p class="sub">Here's what needs your attention.</p></div>
+</div>
+<div class="stats">
+  <a class="card stat" href="{{ url_for('admin_tickets', status='Open') }}"><div class="n n-open">{{ counts['Open'] }}</div><div class="l">Open: need a reply</div></a>
+  <a class="card stat" href="{{ url_for('admin_tickets', status='In progress') }}"><div class="n n-progress">{{ counts['In progress'] }}</div><div class="l">In progress</div></a>
+  <a class="card stat" href="{{ url_for('admin_tickets', status='Resolved') }}"><div class="n n-resolved">{{ resolved_month }}</div><div class="l">Resolved this month</div></a>
+  <div class="card stat"><div class="n">{{ '%.1fh'|format(avg_hours) if avg_hours is not none else '—' }}</div><div class="l">Avg. time to resolve (this month)</div></div>
+</div>
+<div class="grid-2">
+  <div class="card">
+    <div class="toolbar"><h2>🔴 Needs attention</h2><a class="push" href="{{ url_for('admin_tickets') }}">View all →</a></div>
+    {% for t in attention %}
+      <a class="attention-row" href="{{ url_for('admin_ticket', ticket_id=t.id) }}">
+        <div><span class="ticket-no">{{ t.ticket_no }}</span>{% if not t.viewed %}<span class="new-dot" title="New"></span>{% endif %}<br>
+          <b>{{ t.subject }}</b><br><span class="hint">{{ t.name }} · {{ t.department }} · {{ t.created_at|dt }}</span></div>
+        <div class="center">{{ priority_badge(t.priority) }}<br><span class="hint">{{ t.status }}</span></div>
+      </a>
+    {% else %}<div class="empty">🎉 All caught up, no open tickets.</div>{% endfor %}
+  </div>
+  <div class="card pad">
+    <h2>Recent activity</h2>
+    <ul class="log">
+      {% for a in activity %}
+        <li><a href="{{ url_for('admin_ticket', ticket_id=a.id) }}" class="mono">{{ a.ticket_no }}</a> {{ a.action }}<span class="when">{{ a.created_at|dt }}</span></li>
+      {% else %}<li>No activity yet.</li>{% endfor %}
+    </ul>
+    <p class="hint mt">{{ received_month }} ticket(s) received this month.</p>
+  </div>
+</div>
+{% endblock %}

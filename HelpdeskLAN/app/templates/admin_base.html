@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{% endblock %} · Helpdesk Admin</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="admin">
+<div class="admin-shell">
+  <aside class="sidebar">
+    <div class="side-brand"><span class="logo">🛠️</span><div>{{ app_name }}<small>Admin panel</small></div></div>
+    <a href="{{ url_for('admin_dashboard') }}" class="{{ 'active' if request.endpoint == 'admin_dashboard' }}">📊 Dashboard</a>
+    <a href="{{ url_for('admin_tickets') }}" class="{{ 'active' if request.endpoint in ('admin_tickets', 'admin_ticket') }}">🎫 All tickets
+      {% if open_count %}<span class="count">{{ open_count }}</span>{% endif %}</a>
+    <a href="{{ url_for('admin_settings') }}" class="{{ 'active' if request.endpoint == 'admin_settings' }}">⚙️ Settings</a>
+    <a href="{{ url_for('home') }}" target="_blank" rel="noopener">🌐 Employee portal</a>
+    <div class="spacer"></div>
+    <div class="side-user">
+      <span class="avatar">{{ admin.username[:2] }}</span>
+      <div><b>{{ admin.username }}</b><br>
+        <form method="post" action="{{ url_for('admin_logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="link-btn">Sign out</button></form>
+      </div>
+    </div>
+  </aside>
+  <div class="content">
+    {% include "_flashes.html" %}
+    {% block content %}{% endblock %}
+  </div>
+</div>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Office Helpdesk</title>
+<style>
+  :root {
+    --bg: #f4f6f9;
+    --surface: #ffffff;
+    --surface-2: #f8fafc;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --muted: #64748b;
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --primary-soft: #eff6ff;
+    --open: #dc2626;      --open-bg: #fef2f2;
+    --progress: #b45309;  --progress-bg: #fffbeb;
+    --resolved: #15803d;  --resolved-bg: #f0fdf4;
+    --header: #0f172a;
+    --header-text: #f8fafc;
+    --shadow: 0 1px 3px rgba(15, 23, 42, .08), 0 1px 2px rgba(15, 23, 42, .04);
+    --radius: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0b1120;
+      --surface: #141c2f;
+      --surface-2: #1a2338;
+      --border: #26314a;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #60a5fa;
+      --primary-soft: #172554;
+      --open: #f87171;      --open-bg: #3a1414;
+      --progress: #fbbf24;  --progress-bg: #3a2a0a;
+      --resolved: #4ade80;  --resolved-bg: #0f2e1a;
+      --header: #020617;
+      --shadow: none;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  /* Preview bar (not part of the real app) */
+  .preview-bar {
+    background: #fde68a; color: #422006;
+    padding: 8px 16px; font-size: 13px;
+    display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center;
+  }
+  .preview-bar strong { margin-right: 4px; }
+  .preview-bar button {
+    background: rgba(255,255,255,.6); border: 1px solid rgba(66,32,6,.25);
+    color: #422006; border-radius: 6px; padding: 3px 9px; font-size: 12px; cursor: pointer;
+  }
+  .preview-bar button.active { background: #422006; color: #fde68a; }
+  .preview-bar .group { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+  .preview-bar .label { opacity: .75; font-weight: 600; }
+
+  /* App header */
+  header {
+    background: var(--header); color: var(--header-text);
+    padding: 0 16px;
+  }
+  .header-inner {
+    max-width: 1000px; margin: 0 auto; height: 60px;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; cursor: pointer; }
+  .logo {
+    width: 32px; height: 32px; border-radius: 8px; background: var(--primary);
+    display: grid; place-items: center; font-size: 16px;
+  }
+  .brand small { display: block; font-weight: 400; font-size: 12px; opacity: .7; }
+  nav { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  nav a {
+    color: var(--header-text); text-decoration: none; font-size: 14px;
+    padding: 6px 10px; border-radius: 6px; opacity: .85; cursor: pointer;
+  }
+  nav a:hover { background: rgba(255,255,255,.1); opacity: 1; }
+  nav a.cta { background: var(--primary); opacity: 1; }
+  nav a.cta:hover { background: var(--primary-hover); }
+
+  main { max-width: 1000px; margin: 0 auto; padding: 24px 16px 48px; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 20px; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow);
+  }
+  .pad { padding: 20px; }
+
+  /* Buttons & forms */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--primary); color: #fff; border: 0; border-radius: 8px;
+    padding: 10px 18px; font-size: 15px; font-weight: 600; cursor: pointer;
+  }
+  .btn:hover { background: var(--primary-hover); }
+  .btn.secondary { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+  .btn.secondary:hover { background: var(--border); }
+  label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+  .req { color: var(--open); }
+  input, select, textarea {
+    width: 100%; padding: 10px 12px; font: inherit; color: var(--text);
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--primary); outline-offset: -1px; }
+  textarea { min-height: 120px; resize: vertical; }
+  .field { margin-bottom: 16px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .file-drop {
+    border: 2px dashed var(--border); border-radius: 8px; padding: 18px;
+    text-align: center; color: var(--muted); font-size: 14px; background: var(--surface-2);
+  }
+
+  /* Search */
+  .search { display: flex; gap: 8px; margin-bottom: 18px; }
+  .search input { flex: 1; }
+
+  /* Badges */
+  .badge {
+    display: inline-block; font-size: 12px; font-weight: 600;
+    padding: 2px 10px; border-radius: 999px; white-space: nowrap;
+  }
+  .b-open { color: var(--open); background: var(--open-bg); }
+  .b-progress { color: var(--progress); background: var(--progress-bg); }
+  .b-resolved { color: var(--resolved); background: var(--resolved-bg); }
+  .tag {
+    display: inline-block; font-size: 12px; color: var(--muted);
+    background: var(--surface-2); border: 1px solid var(--border);
+    padding: 1px 8px; border-radius: 6px;
+  }
+
+  /* Board */
+  .board-item { padding: 18px 20px; border-bottom: 1px solid var(--border); }
+  .board-item:last-child { border-bottom: 0; }
+  .board-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+  .board-title { font-weight: 600; font-size: 16px; }
+  .ticket-no { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; color: var(--muted); }
+  .meta { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .answer {
+    margin-top: 10px; padding: 12px 14px; border-left: 3px solid var(--resolved);
+    background: var(--surface-2); border-radius: 0 8px 8px 0; font-size: 14px;
+  }
+  .answer b { color: var(--resolved); }
+  .empty { padding: 30px; text-align: center; color: var(--muted); }
+
+  /* Layout helpers */
+  .grid-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; align-items: start; }
+  .narrow { max-width: 440px; margin: 20px auto 0; }
+  .center { text-align: center; }
+
+  /* Confirmation */
+  .success-icon {
+    width: 64px; height: 64px; margin: 0 auto 14px; border-radius: 50%;
+    background: var(--resolved-bg); color: var(--resolved);
+    display: grid; place-items: center; font-size: 32px;
+  }
+  .big-ticket {
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: 34px; font-weight: 700; letter-spacing: 1px;
+    color: var(--primary); background: var(--primary-soft);
+    display: inline-block; padding: 8px 22px; border-radius: 10px; margin: 10px 0 16px;
+  }
+
+  /* Status timeline */
+  .timeline { list-style: none; padding: 0; margin: 16px 0 0; }
+  .timeline li { position: relative; padding: 0 0 16px 26px; font-size: 14px; }
+  .timeline li::before {
+    content: ""; position: absolute; left: 4px; top: 6px;
+    width: 10px; height: 10px; border-radius: 50%; background: var(--border);
+  }
+  .timeline li.done::before { background: var(--resolved); }
+  .timeline li.current::before { background: var(--progress); }
+  .timeline li:not(:last-child)::after {
+    content: ""; position: absolute; left: 8px; top: 18px; bottom: 0;
+    width: 2px; background: var(--border);
+  }
+
+  /* Admin */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+  .stat { padding: 14px 16px; }
+  .stat .n { font-size: 26px; font-weight: 700; }
+  .stat .l { font-size: 13px; color: var(--muted); }
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .chip {
+    border: 1px solid var(--border); background: var(--surface); color: var(--text);
+    border-radius: 999px; padding: 5px 14px; font-size: 13px; cursor: pointer;
+  }
+  .chip.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th {
+    text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .04em;
+    color: var(--muted); padding: 12px 16px; background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+  }
+  td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover { background: var(--surface-2); }
+  tbody tr:last-child td { border-bottom: 0; }
+  tr.new td:first-child { box-shadow: inset 3px 0 0 var(--open); }
+  .table-wrap { overflow-x: auto; }
+
+  .problem-box {
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px; white-space: pre-wrap; font-size: 14px;
+  }
+  .attachment {
+    display: flex; align-items: center; gap: 10px; margin-top: 12px;
+    padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;
+  }
+  .kv { font-size: 14px; }
+  .kv div { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); gap: 10px; }
+  .kv div:last-child { border-bottom: 0; }
+  .kv span:first-child { color: var(--muted); }
+  .check { display: flex; gap: 8px; align-items: center; font-weight: 500; }
+  .check input { width: auto; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+  .section-title { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 10px; }
+
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--header); color: var(--header-text); padding: 10px 18px;
+    border-radius: 8px; font-size: 14px; transition: transform .25s; z-index: 10;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  footer { text-align: center; color: var(--muted); font-size: 12px; padding: 0 16px 24px; }
+
+  @media (max-width: 720px) {
+    .row, .grid-2 { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .header-inner { height: auto; padding: 10px 0; flex-wrap: wrap; }
+    .brand small { display: none; }
+    .hide-sm { display: none; }
+    h1 { font-size: 21px; }
+    .big-ticket { font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Preview bar: only for this template, not part of the real application -->
+<div class="preview-bar">
+  <strong>TEMPLATE PREVIEW</strong>sample data only
+  <div class="group">
+    <span class="label">Employee:</span>
+    <button data-go="board">1 Board</button>
+    <button data-go="report">2 Report</button>
+    <button data-go="confirm">3 Confirmation</button>
+    <button data-go="track">4 Check ticket</button>
+  </div>
+  <div class="group">
+    <span class="label">Admin:</span>
+    <button data-go="login">5 Login</button>
+    <button data-go="dashboard">6 Dashboard</button>
+    <button data-go="detail">7 Ticket detail</button>
+  </div>
+</div>
+
+<header>
+  <div class="header-inner">
+    <div class="brand" data-go="board">
+      <div class="logo">🛠️</div>
+      <div>Office Helpdesk<small>IT support portal</small></div>
+    </div>
+    <nav id="nav-employee">
+      <a data-go="board">Answers</a>
+      <a data-go="track">Check ticket</a>
+      <a class="cta" data-go="report">Report a problem</a>
+    </nav>
+    <nav id="nav-admin" style="display:none">
+      <a data-go="dashboard">Dashboard</a>
+      <a data-go="board">View board</a>
+      <a data-go="logout">Logout (admin)</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- 1. Shared problem board -->
+  <section class="screen" id="board">
+    <h1>Solved problems</h1>
+    <p class="sub">Check here first. Your problem may already have a solution.</p>
+    <div class="search">
+      <input id="search" type="search" placeholder="Search, e.g. printer, Outlook, Wi-Fi…">
+      <select id="cat-filter" style="max-width:170px">
+        <option value="">All categories</option>
+        <option>Printer</option><option>Email</option><option>Network</option>
+        <option>Software</option><option>Hardware</option><option>Access</option>
+      </select>
+    </div>
+    <div class="card" id="board-list"></div>
+  </section>
+
+  <!-- 2. Report a problem -->
+  <section class="screen" id="report">
+    <h1>Report a problem</h1>
+    <p class="sub">Fill in the details below. You will receive a ticket number to track it.</p>
+    <form class="card pad" id="report-form">
+      <div class="row">
+        <div class="field">
+          <label>Your name <span class="req">*</span></label>
+          <input required placeholder="e.g. Ravi Kumar">
+        </div>
+        <div class="field">
+          <label>Department <span class="req">*</span></label>
+          <select required>
+            <option value="">Select…</option>
+            <option>Sales</option><option>Accounts</option><option>HR</option>
+            <option>Operations</option><option>Management</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Category <span class="req">*</span></label>
+          <select required>
+            <option value="">Select…</option>
+            <option>Printer</option><option>Email</option><option>Network</option>
+            <option>Software</option><option>Hardware</option><option>Access</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Priority</label>
+          <select>
+            <option>Low</option><option selected>Medium</option><option>High</option><option>Urgent</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Subject <span class="req">*</span></label>
+        <input required placeholder="Short summary, e.g. Wi-Fi keeps disconnecting">
+      </div>
+      <div class="field">
+        <label>Describe the problem <span class="req">*</span></label>
+        <textarea required placeholder="What happened? When did it start? Any error message?"></textarea>
+      </div>
+      <div class="field">
+        <label>Screenshot (optional)</label>
+        <div class="file-drop">📎 Click to attach a file<br><span class="hint">JPG, PNG or PDF, up to 5 MB</span></div>
+      </div>
+      <div class="actions">
+        <button class="btn" type="submit">Submit problem</button>
+        <button class="btn secondary" type="button" data-go="board">Cancel</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- 3. Confirmation -->
+  <section class="screen" id="confirm">
+    <div class="card pad narrow center" style="max-width:520px">
+      <div class="success-icon">✓</div>
+      <h1>Problem submitted</h1>
+      <p class="sub" style="margin-bottom:0">Your ticket number is</p>
+      <div class="big-ticket">HD-0043</div>
+      <p class="sub">Write this number down. Use it to check the status and read the answer from IT.</p>
+      <div class="actions" style="justify-content:center">
+        <button class="btn" data-go="track">Check status</button>
+        <button class="btn secondary" data-go="board">Back to home</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Check ticket -->
+  <section class="screen" id="track">
+    <h1>Check your ticket</h1>
+    <p class="sub">Enter the ticket number you received after submitting.</p>
+    <div class="search" style="max-width:440px">
+      <input value="HD-0040" placeholder="e.g. HD-0042">
+      <button class="btn">Check</button>
+    </div>
+    <div class="card pad" style="max-width:640px">
+      <div class="board-top">
+        <div>
+          <div class="ticket-no">HD-0040</div>
+          <div class="board-title">Cannot print from accounts PC</div>
+          <div class="meta">Meena S. · HR · Submitted 18 Nov, 10:42</div>
+        </div>
+        <span class="badge b-progress">In progress</span>
+      </div>
+      <ul class="timeline">
+        <li class="done"><b>Submitted</b>, 18 Nov 10:42</li>
+        <li class="current"><b>In progress</b>, IT is working on it (18 Nov 14:05)</li>
+        <li><b>Resolved</b>, the answer will appear here</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 5. Admin login -->
+  <section class="screen" id="login">
+    <form class="card pad narrow" id="login-form">
+      <div class="center" style="margin-bottom:16px">
+        <div class="logo" style="margin:0 auto 10px;width:44px;height:44px;font-size:22px">🔒</div>
+        <h1>Admin login</h1>
+        <p class="sub" style="margin:0">For IT staff only</p>
+      </div>
+      <div class="field">
+        <label>Username</label>
+        <input value="admin">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" value="examplepassword">
+      </div>
+      <button class="btn" style="width:100%;justify-content:center" type="submit">Log in</button>
+      <p class="hint center" style="margin-top:12px">Template only: any password works.</p>
+    </form>
+  </section>
+
+  <!-- 6. Admin dashboard -->
+  <section class="screen" id="dashboard">
+    <h1>Dashboard</h1>
+    <p class="sub">All problems reported by employees.</p>
+    <div class="stats">
+      <div class="card stat"><div class="n" style="color:var(--open)" id="s-open">0</div><div class="l">Open</div></div>
+      <div class="card stat"><div class="n" style="color:var(--progress)" id="s-progress">0</div><div class="l">In progress</div></div>
+      <div class="card stat"><div class="n" style="color:var(--resolved)" id="s-resolved">0</div><div class="l">Resolved</div></div>
+      <div class="card stat"><div class="n" id="s-total">0</div><div class="l">Total this month</div></div>
+    </div>
+    <div class="filters" id="filters">
+      <button class="chip active" data-f="">All</button>
+      <button class="chip" data-f="Open">Open</button>
+      <button class="chip" data-f="In progress">In progress</button>
+      <button class="chip" data-f="Resolved">Resolved</button>
+    </div>
+    <div class="card table-wrap">
+      <table>
+        <thead>
+          <tr><th>Ticket</th><th>Subject</th><th class="hide-sm">From</th><th class="hide-sm">Category</th><th class="hide-sm">Priority</th><th>Status</th></tr>
+        </thead>
+        <tbody id="dash-rows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 7. Ticket detail / answer -->
+  <section class="screen" id="detail">
+    <p style="margin:0 0 10px"><a data-go="dashboard" style="color:var(--primary);cursor:pointer">← Back to dashboard</a></p>
+    <div class="board-top" style="margin-bottom:18px">
+      <div>
+        <div class="ticket-no" id="d-no"></div>
+        <h1 id="d-title"></h1>
+      </div>
+      <span class="badge" id="d-badge"></span>
+    </div>
+    <div class="grid-2">
+      <div>
+        <div class="card pad" style="margin-bottom:20px">
+          <p class="section-title">Problem described by employee</p>
+          <div class="problem-box" id="d-desc"></div>
+          <div class="attachment">📎 <span>screenshot_error.png</span> <span class="hint" style="margin:0 0 0 auto">212 KB</span></div>
+        </div>
+        <form class="card pad" id="answer-form">
+          <p class="section-title">Your answer / solution</p>
+          <div class="field">
+            <textarea id="d-answer" placeholder="Explain the solution so the employee (and others) can follow it…"></textarea>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>Status</label>
+              <select id="d-status">
+                <option>Open</option><option>In progress</option><option>Resolved</option>
+              </select>
+            </div>
+            <div class="field" style="display:flex;align-items:flex-end">
+              <label class="check"><input type="checkbox" id="d-publish" checked> Publish answer on shared board</label>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn" type="submit">Save answer</button>
+            <button class="btn secondary" type="button" data-go="dashboard">Cancel</button>
+          </div>
+        </form>
+      </div>
+      <div class="card pad kv" id="d-info"></div>
+    </div>
+  </section>
+
+</main>
+
+<footer>Office Helpdesk · Internal use only · Available on the office network</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+  // Sample data (in the real app this comes from the SQLite database)
+  const tickets = [
+    { no: "HD-0043", title: "Wi-Fi keeps disconnecting", name: "Ravi Kumar", dept: "Sales", cat: "Network", pri: "High", status: "Open", date: "19 Nov, 09:15", isNew: true,
+      desc: "Since this morning my laptop disconnects from the office Wi-Fi every 10–15 minutes. Other people near me seem fine. I have restarted the laptop once.", answer: "" },
+    { no: "HD-0042", title: "Need access to shared Finance folder", name: "Anita Rao", dept: "Accounts", cat: "Access", pri: "Medium", status: "Open", date: "19 Nov, 08:50", isNew: true,
+      desc: "I joined the Accounts team last week and cannot open \\\\server\\Finance. It says access denied.", answer: "" },
+    { no: "HD-0040", title: "Cannot print from accounts PC", name: "Meena S.", dept: "HR", cat: "Printer", pri: "Medium", status: "In progress", date: "18 Nov, 10:42",
+      desc: "Documents go to the print queue but nothing comes out of the 2nd floor printer.", answer: "" },
+    { no: "HD-0041", title: "Printer shows 'Offline' on 2nd floor", name: "Suresh P.", dept: "Operations", cat: "Printer", pri: "Low", status: "Resolved", date: "17 Nov, 16:20", published: true,
+      desc: "The printer appears offline on all PCs on the 2nd floor.", answer: "The printer had picked up a new IP address. It is now fixed to 192.168.1.50. If it shows offline again, open Settings → Printers, remove it, and add it back." },
+    { no: "HD-0038", title: "Outlook keeps asking for password", name: "Karthik V.", dept: "Management", cat: "Email", pri: "Medium", status: "Resolved", date: "15 Nov, 11:05", published: true,
+      desc: "Outlook asks for my password every few minutes.", answer: "Open Control Panel → Credential Manager → Windows Credentials, delete entries starting with 'MicrosoftOffice', then restart Outlook and sign in once." },
+    { no: "HD-0035", title: "Excel opens very slowly", name: "Divya M.", dept: "Accounts", cat: "Software", pri: "Low", status: "Resolved", date: "12 Nov, 14:30", published: true,
+      desc: "Excel takes over a minute to open any file.", answer: "Disable unused add-ins: Excel → File → Options → Add-ins → Manage COM Add-ins → Go, and untick everything you don't use." },
+    { no: "HD-0031", title: "Forgot Windows login password", name: "Arun J.", dept: "Sales", cat: "Access", pri: "Urgent", status: "Resolved", date: "08 Nov, 09:02", published: true,
+      desc: "I cannot log into my PC.", answer: "Passwords can only be reset by IT. Come to the IT desk with your ID card or call extension 210; it takes about 5 minutes." },
+  ];
+
+  const statusClass = s => s === "Open" ? "b-open" : s === "In progress" ? "b-progress" : "b-resolved";
+  const esc = s => s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  let isAdmin = false, current = tickets[0], dashFilter = "";
+
+  function show(id) {
+    if (id === "logout") { isAdmin = false; toast("Logged out"); id = "board"; }
+    if (["dashboard", "detail"].includes(id) && !isAdmin) isAdmin = true; // preview shortcut
+    document.querySelectorAll(".screen").forEach(s => s.classList.toggle("active", s.id === id));
+    document.querySelectorAll(".preview-bar button").forEach(b => b.classList.toggle("active", b.dataset.go === id));
+    document.getElementById("nav-employee").style.display = isAdmin ? "none" : "";
+    document.getElementById("nav-admin").style.display = isAdmin ? "" : "none";
+    if (id === "board") renderBoard();
+    if (id === "dashboard") renderDashboard();
+    if (id === "detail") renderDetail();
+    window.scrollTo(0, 0);
+  }
+
+  function renderBoard() {
+    const q = document.getElementById("search").value.toLowerCase();
+    const cat = document.getElementById("cat-filter").value;
+    const items = tickets.filter(t => t.status === "Resolved" && t.published &&
+      (!cat || t.cat === cat) &&
+      (!q || (t.title + " " + t.answer + " " + t.cat).toLowerCase().includes(q)));
+    document.getElementById("board-list").innerHTML = items.length ? items.map(t => `
+      <div class="board-item">
+        <div class="board-top">
+          <div>
+            <span class="ticket-no">${t.no}</span> <span class="tag">${t.cat}</span>
+            <div class="board-title">${esc(t.title)}</div>
+            <div class="meta">Resolved · ${t.date}</div>
+          </div>
+          <span class="badge b-resolved">Resolved</span>
+        </div>
+        <div class="answer"><b>Solution:</b> ${esc(t.answer)}</div>
+      </div>`).join("") : `<div class="empty">No matching answers. <a data-go="report" style="color:var(--primary);cursor:pointer">Report a new problem →</a></div>`;
+  }
+
+  function renderDashboard() {
+    const count = s => tickets.filter(t => t.status === s).length;
+    document.getElementById("s-open").textContent = count("Open");
+    document.getElementById("s-progress").textContent = count("In progress");
+    document.getElementById("s-resolved").textContent = count("Resolved");
+    document.getElementById("s-total").textContent = tickets.length;
+    document.getElementById("dash-rows").innerHTML = tickets
+      .filter(t => !dashFilter || t.status === dashFilter)
+      .map(t => `
+        <tr class="${t.isNew ? "new" : ""}" data-no="${t.no}">
+          <td><span class="ticket-no">${t.no}</span>${t.isNew ? ' <span class="badge b-open" style="font-size:10px">NEW</span>' : ""}</td>
+          <td>${esc(t.title)}</td>
+          <td class="hide-sm">${esc(t.name)}<div class="meta">${t.dept}</div></td>
+          <td class="hide-sm"><span class="tag">${t.cat}</span></td>
+          <td class="hide-sm">${t.pri}</td>
+          <td><span class="badge ${statusClass(t.status)}">${t.status}</span></td>
+        </tr>`).join("");
+  }
+
+  function renderDetail() {
+    const t = current;
+    document.getElementById("d-no").textContent = t.no;
+    document.getElementById("d-title").textContent = t.title;
+    const badge = document.getElementById("d-badge");
+    badge.textContent = t.status; badge.className = "badge " + statusClass(t.status);
+    document.getElementById("d-desc").textContent = t.desc;
+    document.getElementById("d-answer").value = t.answer;
+    document.getElementById("d-status").value = t.status;
+    document.getElementById("d-publish").checked = t.published !== false;
+    document.getElementById("d-info").innerHTML = `
+      <p class="section-title">Ticket info</p>
+      <div><span>Submitted by</span><span>${esc(t.name)}</span></div>
+      <div><span>Department</span><span>${t.dept}</span></div>
+      <div><span>Category</span><span>${t.cat}</span></div>
+      <div><span>Priority</span><span>${t.pri}</span></div>
+      <div><span>Submitted</span><span>${t.date}</span></div>
+      <div><span>Status</span><span class="badge ${statusClass(t.status)}">${t.status}</span></div>`;
+  }
+
+  function toast(msg) {
+    const el = document.getElementById("toast");
+    el.textContent = msg; el.classList.add("show");
+    clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("show"), 2200);
+  }
+
+  // Navigation
+  document.addEventListener("click", e => {
+    const go = e.target.closest("[data-go]");
+    if (go) { e.preventDefault(); show(go.dataset.go); return; }
+    const row = e.target.closest("tr[data-no]");
+    if (row) { current = tickets.find(t => t.no === row.dataset.no); show("detail"); return; }
+    const chip = e.target.closest(".chip");
+    if (chip) {
+      dashFilter = chip.dataset.f;
+      document.querySelectorAll(".chip").forEach(c => c.classList.toggle("active", c === chip));
+      renderDashboard();
+    }
+  });
+  document.getElementById("search").addEventListener("input", renderBoard);
+  document.getElementById("cat-filter").addEventListener("change", renderBoard);
+  document.getElementById("report-form").addEventListener("submit", e => { e.preventDefault(); show("confirm"); });
+  document.getElementById("login-form").addEventListener("submit", e => { e.preventDefault(); isAdmin = true; toast("Welcome, admin"); show("dashboard"); });
+  document.getElementById("answer-form").addEventListener("submit", e => {
+    e.preventDefault();
+    current.answer = document.getElementById("d-answer").value;
+    current.status = document.getElementById("d-status").value;
+    current.published = document.getElementById("d-publish").checked;
+    current.isNew = false;
+    toast("Answer saved" + (current.status === "Resolved" && current.published ? " and published to the board" : ""));
+    show("dashboard");
+  });
+
+  show("board");
+</script>
+</body>
+</html>

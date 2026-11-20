@@ -1,0 +1,37 @@
+{% extends "admin_base.html" %}
+{% from "_macros.html" import field_error %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Settings</h1><p class="sub">Your password, backups and system information.</p></div></div>
+<div class="grid-2">
+  <form class="card pad" method="post" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h2>Change my password</h2>
+    <div class="field{{ ' has-error' if errors.current_password }}"><label for="cp">Current password</label>
+      <input id="cp" type="password" name="current_password" autocomplete="current-password" required>{{ field_error(errors, 'current_password') }}</div>
+    <div class="field{{ ' has-error' if errors.new_password }}"><label for="np">New password</label>
+      <input id="np" type="password" name="new_password" autocomplete="new-password" minlength="{{ info.min_password }}" required>
+      <div class="hint">At least {{ info.min_password }} characters</div>{{ field_error(errors, 'new_password') }}</div>
+    <div class="field{{ ' has-error' if errors.confirm_password }}"><label for="cf">Type the new password again</label>
+      <input id="cf" type="password" name="confirm_password" autocomplete="new-password" required>{{ field_error(errors, 'confirm_password') }}</div>
+    <button class="btn">Change password</button>
+  </form>
+
+  <div class="card pad">
+    <h2>Backup &amp; system</h2>
+    <div class="kv">
+      <div><span>Last backup</span><span>{{ info.last_backup|dt if info.last_backup else 'Never' }}</span></div>
+      <div><span>Backup folder</span><span class="mono hint">{{ info.backup_dir }}</span></div>
+      <div><span>Database size</span><span>{{ (info.db_size / 1024 / 1024)|round(2) }} MB</span></div>
+      <div><span>Attachments</span><span>{{ info.upload_count }} files · {{ (info.upload_size / 1024 / 1024)|round(1) }} MB</span></div>
+      <div><span>Address for employees</span><span class="mono">{{ info.address }}</span></div>
+      <div><span>Max upload size</span><span>5 MB (JPG, PNG, PDF)</span></div>
+    </div>
+    <form class="mt" method="post" action="{{ url_for('admin_backup') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn sm">Back up now</button>
+    </form>
+    <p class="hint mt">Daily backups run automatically once <b>scripts\schedule_backup.bat</b> has been run on the server. The newest 30 backups are kept.</p>
+  </div>
+</div>
+{% endblock %}

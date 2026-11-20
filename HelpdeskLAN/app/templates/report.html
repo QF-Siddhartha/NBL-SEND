@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field_error %}
+{% block title %}Report a problem{% endblock %}
+{% block content %}
+<h1>Report a problem</h1>
+<p class="sub">Fill in the details below. Fields marked <span class="req">*</span> are required.</p>
+{% if errors %}<div class="flash flash-warn">Please fix the highlighted fields below.</div>{% endif %}
+<form class="card pad" method="post" enctype="multipart/form-data" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="row">
+    <div class="field{{ ' has-error' if errors.name }}">
+      <label for="name">Your name <span class="req">*</span></label>
+      <input id="name" name="name" value="{{ values.name }}" maxlength="100" required placeholder="e.g. Ravi Kumar">
+      {{ field_error(errors, 'name') }}
+    </div>
+    <div class="field{{ ' has-error' if errors.department }}">
+      <label for="department">Department <span class="req">*</span></label>
+      <input id="department" name="department" value="{{ values.department }}" maxlength="100" required list="dept-list" placeholder="e.g. Sales">
+      <datalist id="dept-list">{% for d in department_suggestions %}<option value="{{ d }}">{% endfor %}</datalist>
+      {{ field_error(errors, 'department') }}
+    </div>
+  </div>
+  <div class="row">
+    <div class="field">
+      <label for="phone">Phone / extension</label>
+      <input id="phone" name="phone" value="{{ values.phone }}" maxlength="50" placeholder="e.g. 214">
+      <div class="hint">So IT can call you if needed</div>
+    </div>
+    <div class="field">
+      <label for="location">Computer / location</label>
+      <input id="location" name="location" value="{{ values.location }}" maxlength="100" placeholder="e.g. 2nd floor, desk 12">
+    </div>
+  </div>
+  <div class="row">
+    <div class="field{{ ' has-error' if errors.category }}">
+      <label for="category">Category <span class="req">*</span></label>
+      <input id="category" name="category" value="{{ values.category }}" maxlength="60" required list="cat-list" placeholder="e.g. Printer, Email, Wi-Fi">
+      <datalist id="cat-list">{% for c in category_suggestions %}<option value="{{ c }}">{% endfor %}</datalist>
+      <div class="hint">Type your own, or pick one used before</div>
+      {{ field_error(errors, 'category') }}
+    </div>
+    <div class="field">
+      <label for="priority">How urgent is it?</label>
+      <select id="priority" name="priority">
+        {% for p in priorities %}<option value="{{ p }}"{% if p == values.priority %} selected{% endif %}>{{ priority_help[p] }}</option>{% endfor %}
+      </select>
+    </div>
+  </div>
+  <div class="field{{ ' has-error' if errors.subject }}">
+    <label for="subject">Subject <span class="req">*</span></label>
+    <input id="subject" name="subject" value="{{ values.subject }}" maxlength="150" required placeholder="Short summary, e.g. Wi-Fi keeps disconnecting">
+    {{ field_error(errors, 'subject') }}
+  </div>
+  <div class="field{{ ' has-error' if errors.description }}">
+    <label for="description">Describe the problem <span class="req">*</span></label>
+    <textarea id="description" name="description" maxlength="5000" required placeholder="What happened? When did it start? What error message do you see? What have you already tried?">{{ values.description }}</textarea>
+    {{ field_error(errors, 'description') }}
+  </div>
+  <div class="field{{ ' has-error' if errors.attachment }}">
+    <label for="attachment">Screenshot or file (optional)</label>
+    <input id="attachment" type="file" name="attachment" accept=".jpg,.jpeg,.png,.pdf" data-max-bytes="5242880">
+    <div class="hint">JPG, PNG or PDF · max 5 MB</div>
+    {{ field_error(errors, 'attachment') }}
+  </div>
+  <div class="actions">
+    <button class="btn" type="submit">Submit problem</button>
+    <a class="btn secondary" href="{{ url_for('home') }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

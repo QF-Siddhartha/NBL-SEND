@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge %}
+{% block title %}Ticket {{ t.ticket_no }}{% endblock %}
+{% block content %}
+<div class="card pad narrow">
+  <div class="success-icon">✓</div>
+  <h1>Thank you, your problem was submitted</h1>
+  <p class="sub mb0">Your ticket number is</p>
+  <div class="big-ticket">{{ t.ticket_no }}</div>
+  <p class="meta">📌 Please write this number down or take a screenshot.</p>
+  <div class="kv mt mb">
+    <div><span>Subject</span><span>{{ t.subject }}</span></div>
+    <div><span>Category</span><span>{{ t.category }}</span></div>
+    <div><span>Priority</span><span>{{ t.priority }}</span></div>
+    <div><span>Status</span>{{ status_badge(t.status) }}</div>
+  </div>
+  <p class="sub">IT will look at it as soon as possible. Urgent problems are handled first.</p>
+  <div class="actions" style="justify-content:center">
+    <a class="btn" href="{{ url_for('track', no=t.ticket_no) }}">Track this ticket</a>
+    <a class="btn secondary" href="{{ url_for('home') }}">Back to home</a>
+  </div>
+</div>
+{% endblock %}

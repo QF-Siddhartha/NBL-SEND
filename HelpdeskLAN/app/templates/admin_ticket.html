@@ -1,0 +1,77 @@
+{% extends "admin_base.html" %}
+{% from "_macros.html" import status_badge, priority_badge %}
+{% block title %}{{ t.ticket_no }}{% endblock %}
+{% block content %}
+<p class="mb0"><a href="{{ url_for('admin_tickets') }}">← Back to all tickets</a></p>
+<div class="page-head">
+  <div><span class="ticket-no">{{ t.ticket_no }}</span><h1>{{ t.subject }}</h1></div>
+  <div class="actions">
+    {{ priority_badge(t.priority) }} {{ status_badge(t.status) }}
+    {% if t.status == 'Resolved' and t.published and t.answer %}<span class="badge b-resolved">🌐 Published</span>{% endif %}
+  </div>
+</div>
+
+<div class="detail-grid">
+  <div>
+    <div class="card pad mb">
+      <p class="section-title">Problem from employee</p>
+      <div class="problem-box">{{ t.description }}</div>
+      {% if t.attachment_file %}
+        <div class="attachment">📎 <a href="{{ url_for('admin_attachment', ticket_id=t.id) }}">{{ t.attachment_name }}</a><span class="hint">click to download</span></div>
+        {% if is_image %}<a href="{{ url_for('admin_attachment', ticket_id=t.id, inline=1) }}" target="_blank" rel="noopener"><img class="att-img" src="{{ url_for('admin_attachment', ticket_id=t.id, inline=1) }}" alt="Attached screenshot"></a>{% endif %}
+      {% endif %}
+    </div>
+
+    <form class="card pad mb" method="post" action="{{ url_for('admin_ticket_update', ticket_id=t.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <p class="section-title">Answer / solution (the employee will see this)</p>
+      <div class="field"><textarea name="answer" maxlength="10000" aria-label="Answer" placeholder="Write the solution in simple steps so the employee (and others) can follow it…">{{ t.answer }}</textarea></div>
+      <div class="row">
+        <div class="field"><label for="status">Status</label>
+          <select id="status" name="status">{% for s in statuses %}<option{% if s == t.status %} selected{% endif %}>{{ s }}</option>{% endfor %}</select></div>
+        <div class="field"><label for="priority">Priority</label>
+          <select id="priority" name="priority">{% for p in priorities %}<option{% if p == t.priority %} selected{% endif %}>{{ p }}</option>{% endfor %}</select></div>
+      </div>
+      <label class="check mb"><input type="checkbox" name="published" value="1"{% if t.published %} checked{% endif %}>
+        Publish on the shared Solutions board when resolved (visible to all employees, without the employee's name)</label>
+      <div class="actions">
+        <button class="btn" type="submit">💾 Save</button>
+        <a class="btn secondary" href="{{ url_for('admin_tickets') }}">Cancel</a>
+      </div>
+    </form>
+
+    <div class="card pad" id="notes">
+      <p class="section-title">Internal notes (only admins see these)</p>
+      {% for n in notes %}<div class="note">🔒 {{ n.text }}<span class="when">{{ n.author }} · {{ n.created_at|dt }}</span></div>
+      {% else %}<p class="hint">No internal notes yet.</p>{% endfor %}
+      <form class="inline-form mt" method="post" action="{{ url_for('admin_ticket_note', ticket_id=t.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input name="text" maxlength="2000" required placeholder="Add a private note, e.g. 'Ordered new toner, arriving Friday'" aria-label="Note">
+        <button class="btn sm">Add note</button>
+      </form>
+    </div>
+  </div>
+
+  <div>
+    <div class="card pad kv mb">
+      <p class="section-title">Employee details</p>
+      <div><span>Name</span><b>{{ t.name }}</b></div>
+      <div><span>Department</span><span>{{ t.department }}</span></div>
+      <div><span>Phone / ext.</span><span>{{ t.phone or '—' }}</span></div>
+      <div><span>Location</span><span>{{ t.location or '—' }}</span></div>
+      <div><span>Category</span><span class="tag">{{ t.category }}</span></div>
+      <div><span>Received</span><span>{{ t.created_at|dt }}</span></div>
+      {% if t.resolved_at %}<div><span>Resolved</span><span>{{ t.resolved_at|dt }}</span></div>{% endif %}
+    </div>
+    <div class="card pad mb">
+      <p class="section-title">History</p>
+      <ul class="log">{% for l in log %}<li>{{ l.action }}<span class="when">{{ l.created_at|dt }}</span></li>{% endfor %}</ul>
+    </div>
+    <form class="danger-zone" method="post" action="{{ url_for('admin_ticket_delete', ticket_id=t.id) }}"
+          data-confirm="Delete {{ t.ticket_no }} permanently? This cannot be undone.">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn danger block">🗑 Delete ticket</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
